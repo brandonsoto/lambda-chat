@@ -4,7 +4,7 @@ var AWS = require('aws-sdk');
 
 var S3 = new AWS.S3();
 
-var bucket = 'http://brandonsoto-chat-lamda.s3-website-us-west-2.amazonaws.com';
+var bucket = 'brandonsoto-chat-lamda';
 
 exports.handler = function (event, context, callback) {
 
@@ -14,15 +14,29 @@ exports.handler = function (event, context, callback) {
             body: err ? JSON.stringify(err) : JSON.stringify(res),
             headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
+                'Access-Control-Allow-Origin': 'http://brandonsoto-chat-lamda.s3-website-us-west-2.amazonaws.com'
             }
         });
     };
 
-    S3.getObject({
-        Bucket: bucket,
-        Key: 'data/conversations.json'
-    }, function (err, data) {
-        done(err, err ? null : JSON.parse(data.Body.toString()));
-    });
+    var path = event.pathParameters.proxy;
+
+    if (path === 'conversations') {
+        S3.getObject({
+            Bucket: bucket,
+            Key: 'data/conversations.json'
+        }, function (err, data) {
+            done(err, err ? null : JSON.parse(data.Body.toString()));
+        });
+    } else if (path.startsWith('conversations/')) {
+        var id = path.substring('conversations/'.length);
+        S3.getObject({
+            Bucket: bucket,
+            Key: 'data/conversations/' + id + '.json'
+        }, function (err, data) {
+            done(err, err ? null : JSON.parse(data.Body.toString()));
+        });
+    } else {
+        done('No cases hit');
+    }
 };
